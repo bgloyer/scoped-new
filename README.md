@@ -5,12 +5,3 @@
 [![CodeQL](https://github.com/bgloyer/scoped-new/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/bgloyer/scoped-new/actions/workflows/codeql-analysis.yml)
 
 ## About scoped-new
-
-
-
-## More Details
-
- * [Dependency Setup](README_dependencies.md)
- * [Building Details](README_building.md)
- * [Troubleshooting](README_troubleshooting.md)
- * [Docker](README_docker.md)
