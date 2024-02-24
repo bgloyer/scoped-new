@@ -15,6 +15,7 @@ CMakeUserPresets.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+*.kdev4
 *.swp
 *~
 _ReSharper*
