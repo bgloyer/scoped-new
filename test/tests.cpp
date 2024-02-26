@@ -35,14 +35,17 @@ namespace
       {
         std::cout << " -> " << num << " " << name << " " << ++s_count << "\n";
       }  
-
       
       ~Lifetime()
       {
         std::cout << " <- " << m_num << " " << m_name << " " << s_count-- << "\n";
       }
       
+      // make sure it works with non-moveable types
+      Lifetime(const Lifetime&) = delete;
+      Lifetime& operator=(const Lifetime&) = delete;
       Lifetime(Lifetime&&) = delete;
+      Lifetime& operator=(Lifetime&&) = delete;
 
     };
     
@@ -59,9 +62,6 @@ TEST_CASE("Factorials are computed", "[factorial]")
 
 TEST_CASE("XXXXX")
 {
-  scope::scoped_new<int> sn;
-  auto myint = sn.make();
-  
   {
     scope::scoped_new<Lifetime> lt;
     for(int i = 0; i < 121; i++)
