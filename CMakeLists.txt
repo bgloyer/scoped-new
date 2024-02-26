@@ -104,7 +104,7 @@ include(cmake/PackageProject.cmake)
 # we know we want to ship
 scoped_new_package_project(
   TARGETS
-  intro
+  #  intro
   scoped_new_options
   scoped_new_warnings
   # FIXME: this does not work! CK
