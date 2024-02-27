@@ -2,6 +2,7 @@
 
 
 #include <scoped_new/sample_library.hpp>
+#include <scoped_new/filo.h>
 #include <scoped_new/scoped_new.h>
 
 #include <iostream>
@@ -63,12 +64,24 @@ TEST_CASE("Factorials are computed", "[factorial]")
 TEST_CASE("XXXXX")
 {
   {
-    scope::scoped_new<Lifetime> lt;
-    for(int i = 0; i < 121; i++)
+    scope::filo<Lifetime> lt;
+    for(int i = 0; i < 3; i++)
     {
-      lt.make();
-      lt.make(i);
-      lt.make(i, "fred");
+      lt.emplace();
+      lt.emplace(i);
+      lt.emplace(i, "fred");
+    }
+  }  
+}
+
+TEST_CASE("YYYY")
+{
+  {
+    scope::scoped_new sn;
+    {
+      sn.emplace<Lifetime>();
+      sn.emplace<Lifetime>(4);
+      sn.emplace<Lifetime>(4, "bob");
     }
   }  
 }

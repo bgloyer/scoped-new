@@ -4,18 +4,16 @@
 
 namespace scope
 {
-  template<typename T>
   class scoped_new
   {
-    static constexpr int Width = 60;
-    struct Buffer
+    struct deleter_list
     {
-      std::unique_ptr<Buffer> next;
-      void* slots[sizeof(T[Width])];
+      deleter_list *next_deleter;
+      virtual void destroy() = 0;
+      virtual ~deleter_list() = default;
     };
     
-    std::unique_ptr<Buffer> m_head;
-    int m_index = Width;
+    deleter_list* m_next = nullptr;
     
   public:
 
@@ -25,32 +23,37 @@ namespace scope
     
     ~scoped_new()
     {
-      while(m_head)
+      auto ptr = m_next;
+      while(ptr)
       {
-        T* buff = reinterpret_cast<T*>(m_head->slots);
-        for(auto i = m_index - 1; i >= 0; --i)
-        {
-          buff[i].~T();
-        }
-        m_index = Width;
-        auto rest = std::move(m_head->next);
-        m_head = std::move(rest);
+        auto next = ptr->next_deleter;
+        ptr->destroy();
+        delete ptr;
+        ptr = next;
       }
     }
     
-    template<typename ...Params>
-    T& make(Params&&... params)
+    template<typename T, typename ...Params>
+    T& emplace(Params&&... params)
     {
-      if(m_index >= Width)
+      struct T_deleter : public deleter_list
       {
-        auto b = std::make_unique<Buffer>();
-        b->next = std::move(m_head);
-        m_head = std::move(b);
-        m_index = 0;
-      }
-
-      T* buff = reinterpret_cast<T*>(m_head->slots);
-      return *(new (&buff[m_index++]) T(std::forward<Params>(params)...));
+        explicit T_deleter(deleter_list *next)
+        {
+          this->next_deleter = next;
+        }
+                
+        char spot[sizeof(T)];
+        void destroy() override
+        {
+          reinterpret_cast<T&>(spot).~T();
+        }
+      };
+      
+     auto* item = new T_deleter(m_next);
+     m_next = item;
+     T* buff = reinterpret_cast<T*>(item->spot);
+     return *(new (buff) T(std::forward<Params>(params)...));
     }
   };
 }
