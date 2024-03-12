@@ -39,7 +39,7 @@ namespace scope
     }
     
     template<typename ...Args>
-    T& emplace(Args&&... args)
+    T* emplace(Args&&... args)
     {
       if(m_index >= Width)
       {
@@ -50,7 +50,7 @@ namespace scope
       }
 
       T* buff = reinterpret_cast<T*>(m_head->slots);
-      return *(new (&buff[m_index++]) T(std::forward<Args>(args)...));
+      return new (&buff[m_index++]) T(std::forward<Args>(args)...);
     }
   };
 }
