@@ -159,6 +159,7 @@ TEST_CASE("YYYY")
       sn.emplace(MoveableOnly{5, "george"}); // r-value
       MoveableOnly moveableOnly(6, "alice");
       //sn.emplace(moveableOnly);
+            
       CopyableOnly copyableOnly(7, "lisa");
       sn.emplace(copyableOnly);
     }
