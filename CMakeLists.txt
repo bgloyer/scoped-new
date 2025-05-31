@@ -20,7 +20,7 @@ project(
   VERSION 0.0.1
   DESCRIPTION ""
   HOMEPAGE_URL "https://github.com/bgloyer/scoped-new"
-  LANGUAGES CXX C)
+  LANGUAGES CXX )
 
 include(cmake/PreventInSourceBuilds.cmake)
 include(ProjectOptions.cmake)
