@@ -6,23 +6,42 @@ namespace scope
 {
   class scoped_new
   {
-    struct deleter_list
+    class deleter_list
     {
-      deleter_list *next_deleter;
+      deleter_list *m_next_deleter;
+
+    public:
+      constexpr explicit deleter_list(deleter_list *head) noexcept
+      : m_next_deleter(head) {}
+      
+//      void insert(deleter_list*& item) noexcept
+//      {
+//        m_next_deleter = item;
+//        item = this;
+//      }
+      
       virtual void destroy() = 0;
       virtual ~deleter_list() = default;
+      
+      static void destroy_all(deleter_list *list)
+      {
+        while(list)
+        {
+          auto next = list->m_next_deleter;
+          list->destroy();
+          delete list;
+          list = next;
+        }
+      };
     };
 
     template<class T>
     struct T_deleter : public deleter_list
     {
+      explicit constexpr T_deleter(deleter_list *head) noexcept
+      : deleter_list(head) {}
+      
       char spot[sizeof(T)];
-
-      void link(deleter_list*& item) noexcept
-      {
-        next_deleter = item;
-        item = this;
-      }
       
       void destroy() override
       {
@@ -30,7 +49,7 @@ namespace scope
       }
     };
   
-    deleter_list* m_next = nullptr;
+    deleter_list* m_head = nullptr;
     
   public:
 
@@ -42,22 +61,16 @@ namespace scope
     
     ~scoped_new()
     {
-      auto* ptr = m_next;
-      while(ptr)
-      {
-        auto next = ptr->next_deleter;
-        ptr->destroy();
-        delete ptr;
-        ptr = next;
-      }
+      deleter_list::destroy_all(m_head);
     }
     
     template<typename T, typename ...Params>
     T* emplace(Params&&... params)
     {     
-      auto item = std::make_unique<T_deleter<T>>();
+      auto item = std::make_unique<T_deleter<T>>(m_head);
       auto* object = new (&item->spot) T(std::forward<Params>(params)...);
-      item->link(m_next);
+    //  item->insert(m_next);
+      m_head = item.get();
       item.release();
       return object;
     }
@@ -65,9 +78,10 @@ namespace scope
     template<typename T>
     T* emplace(T&& t)
     {     
-      auto item = std::make_unique<T_deleter<T>>();
+      auto item = std::make_unique<T_deleter<T>>(m_head);
       auto* object = new (&item->spot) T(std::move(t));
-      item->link(m_next);
+//      item->insert(m_next);
+      m_head = item.get();
       item.release();
       return object;
     }
@@ -75,9 +89,10 @@ namespace scope
     template<typename T>
     T* emplace(const T& t)
     {     
-      auto item = std::make_unique<T_deleter<T>>();
+      auto item = std::make_unique<T_deleter<T>>(m_head);
       auto* object = new (&item->spot) T(t);
-      item->link(m_next);
+//      item->insert(m_next);
+      m_head = item.get();
       item.release();
       return object;
     }
