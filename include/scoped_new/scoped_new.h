@@ -8,18 +8,13 @@ namespace scope
   {
     class deleter_list
     {
+      
       deleter_list *m_next_deleter;
 
     public:
       constexpr explicit deleter_list(deleter_list *head) noexcept
       : m_next_deleter(head) {}
-      
-//      void insert(deleter_list*& item) noexcept
-//      {
-//        m_next_deleter = item;
-//        item = this;
-//      }
-      
+           
       virtual void destroy() = 0;
       virtual ~deleter_list() = default;
       
@@ -69,7 +64,6 @@ namespace scope
     {     
       auto item = std::make_unique<T_deleter<T>>(m_head);
       auto* object = new (&item->spot) T(std::forward<Params>(params)...);
-    //  item->insert(m_next);
       m_head = item.get();
       item.release();
       return object;
@@ -80,7 +74,6 @@ namespace scope
     {     
       auto item = std::make_unique<T_deleter<T>>(m_head);
       auto* object = new (&item->spot) T(std::move(t));
-//      item->insert(m_next);
       m_head = item.get();
       item.release();
       return object;
@@ -91,7 +84,6 @@ namespace scope
     {     
       auto item = std::make_unique<T_deleter<T>>(m_head);
       auto* object = new (&item->spot) T(t);
-//      item->insert(m_next);
       m_head = item.get();
       item.release();
       return object;
