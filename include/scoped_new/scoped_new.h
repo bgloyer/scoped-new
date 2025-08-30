@@ -70,7 +70,7 @@ namespace scope
     }
 
     template<typename T>
-    T* emplace(T&& t)
+    T* insert(T&& t)
     {     
       auto item = std::make_unique<T_deleter<T>>(m_head);
       auto* object = new (&item->spot) T(std::move(t));
@@ -80,7 +80,7 @@ namespace scope
     }
 
     template<typename T>
-    T* emplace(const T& t)
+    T* insert(const T& t)
     {     
       auto item = std::make_unique<T_deleter<T>>(m_head);
       auto* object = new (&item->spot) T(t);

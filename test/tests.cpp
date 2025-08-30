@@ -155,12 +155,12 @@ TEST_CASE("scoped_new")
       sn.emplace<NonMoveable>();
       sn.emplace<NonMoveable>(4);
       sn.emplace<NonMoveable>(4, "bob");
-      sn.emplace(MoveableOnly{5, "george"});
+      sn.insert(MoveableOnly{5, "george"});
       MoveableOnly moveableOnly(6, "alice");
-      sn.emplace(std::move(moveableOnly));
+      sn.insert(std::move(moveableOnly));
             
-      CopyableOnly copyableOnly(7, "lisa");
-      sn.emplace(copyableOnly);
+      const CopyableOnly copyableOnly(7, "lisa");
+      sn.insert(copyableOnly);
     }
   }  
 }
