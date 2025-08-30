@@ -31,7 +31,7 @@ namespace scope
     };
 
     template<class T>
-    struct T_deleter : public deleter_list
+    struct T_deleter final : public deleter_list
     {
       explicit constexpr T_deleter(deleter_list *head) noexcept
       : deleter_list(head) {}
@@ -68,22 +68,13 @@ namespace scope
       item.release();
       return object;
     }
-
+   
     template<typename T>
-    T* insert(T&& t)
-    {     
-      auto item = std::make_unique<T_deleter<T>>(m_head);
-      auto* object = new (&item->spot) T(std::move(t));
-      m_head = item.get();
-      item.release();
-      return object;
-    }
-
-    template<typename T>
-    T* insert(const T& t)
-    {     
-      auto item = std::make_unique<T_deleter<T>>(m_head);
-      auto* object = new (&item->spot) T(t);
+    std::remove_cvref_t<T>* insert(T&& t)
+    { 
+      using T_value = std::remove_cvref_t<T>;
+      auto item = std::make_unique<T_deleter<T_value>>(m_head);
+      auto* object = new (&item->spot) T_value(std::forward<T>(t));
       m_head = item.get();
       item.release();
       return object;
