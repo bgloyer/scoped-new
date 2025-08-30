@@ -134,7 +134,7 @@ TEST_CASE("Factorials are computed", "[factorial]")
   //REQUIRE(factorial(10) == 3628800);
 }
 
-TEST_CASE("XXXXX")
+TEST_CASE("filo")
 {
   {
     scope::filo<NonMoveable> lt;
@@ -147,7 +147,7 @@ TEST_CASE("XXXXX")
   }  
 }
 
-TEST_CASE("YYYY")
+TEST_CASE("scoped_new")
 {
   {
     scope::scoped_new sn;
@@ -155,10 +155,9 @@ TEST_CASE("YYYY")
       sn.emplace<NonMoveable>();
       sn.emplace<NonMoveable>(4);
       sn.emplace<NonMoveable>(4, "bob");
-   //   sn.emplace<NonMoveable>(NonMoveable{5, "bob"}); // error not-moveable
-      sn.emplace(MoveableOnly{5, "george"}); // r-value
+      sn.emplace(MoveableOnly{5, "george"});
       MoveableOnly moveableOnly(6, "alice");
-      //sn.emplace(moveableOnly);
+      sn.emplace(std::move(moveableOnly));
             
       CopyableOnly copyableOnly(7, "lisa");
       sn.emplace(copyableOnly);
