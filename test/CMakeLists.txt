@@ -33,6 +33,9 @@ include(${Catch2_SOURCE_DIR}/extras/Catch.cmake)
 #set_tests_properties(cli.version_matches PROPERTIES PASS_REGULAR_EXPRESSION "${PROJECT_VERSION}")
 
 add_executable(tests tests.cpp)
+
+set_property(TARGET tests PROPERTY CXX_STANDARD 23)
+
 target_link_libraries(
   tests
   PRIVATE scoped_new::scoped_new_warnings

@@ -1,47 +1,91 @@
 #include <catch2/catch_test_macros.hpp>
 
-
 #include <scoped_new/sample_library.hpp>
 #include <scoped_new/filo.h>
 #include <scoped_new/scoped_new.h>
 
 #include <iostream>
+#include <memory>
+#include <print>
 #include <string>
+#include <vector>
 
 using namespace std;
 
 namespace
 {
+  using ObjectLifetimeVerifier = shared_ptr<nullptr_t>; // uses custom deleter for verification
+
+  class LiftimeTracker
+  {
+    ObjectLifetimeVerifier m_objectZero;
+    weak_ptr<nullptr_t> m_lastCreatedObj;
+    vector<weak_ptr<nullptr_t>> m_allObjects;
+
+  public:
+
+    LiftimeTracker()
+    {
+      // create a first object
+      m_objectZero = shared_ptr<nullptr_t>(nullptr, [](nullptr_t){});
+      m_lastCreatedObj = m_objectZero;
+    }
+
+    ~LiftimeTracker()
+    {
+      VerifyNoneActive();
+    }
+
+    ObjectLifetimeVerifier CreateVerifier()
+    {
+      static int id = 0;
+      std::println("constructing {}", id);
+
+      // uses the shared_ptr/weak_ptr relationship to verify lifetimes
+      auto deleteVerify = [lastObj = m_lastCreatedObj, id = id](nullptr_t)
+      {
+        // since object are destroyed in the reverse order of creation, all
+        // objects created before this one should not be expired.  check the
+        // one object created before this one which recursively shows they are
+        // all valid
+        std::println("dv {}", id);
+        REQUIRE(!lastObj.expired());
+      };
+      id++;
+      
+      shared_ptr<nullptr_t> obj(nullptr, deleteVerify);
+      m_lastCreatedObj = obj;
+      m_allObjects.push_back(m_lastCreatedObj);
+
+      return obj;
+    }
+
+  private:
+
+    void VerifyNoneActive()
+    {
+      std::println("active?");
+      // at this point, all objects should be destroyed and the weak_pts's expired
+      for(auto wp : m_allObjects)
+      {
+        std::print(".");
+        REQUIRE(wp.expired());
+      }
+    }
+  };
+
     class NonMoveable
     {
-      inline static int s_count = 0;
-      int m_num = -1;
-      string m_name;
-      
-    public:
-      NonMoveable()
-      {
-        std::cout << " -> " << ++s_count << "\n";
-      }
-      
-      explicit NonMoveable(int num)
-      : m_num(num)
-      {
-        std::cout << " -> " << num << " " << ++s_count << "\n";
-      }  
+      ObjectLifetimeVerifier m_verify;
 
-      NonMoveable(int num, const string& name)
-      : m_num(num)
-      , m_name(name)
+    public:
+      explicit NonMoveable(LiftimeTracker &tracker)
+      : m_verify(tracker.CreateVerifier())
       {
-        std::cout << " -> " << num << " " << name << " " << ++s_count << "\n";
-      }  
-      
-      ~NonMoveable()
-      {
-        std::cout << " <- " << m_num << " " << m_name << " " << s_count-- << "\n";
       }
-      
+
+      ~NonMoveable() = default;
+
       // make sure it works with non-moveable types
       NonMoveable(const NonMoveable&) = delete;
       NonMoveable& operator=(const NonMoveable&) = delete;
@@ -51,35 +95,17 @@ namespace
 
     class MoveableOnly
     {
-      inline static int s_count = 0;
-      int m_num = -1;
-      string m_name;
-      
-    public:
-      MoveableOnly()
-      {
-        std::cout << " -> " << ++s_count << "\n";
-      }
-      
-      explicit MoveableOnly(int num)
-      : m_num(num)
-      {
-        std::cout << " -> " << num << " " << ++s_count << "\n";
-      }  
+      ObjectLifetimeVerifier m_verify;
 
-      MoveableOnly(int num, const string& name)
-      : m_num(num)
-      , m_name(name)
+    public:
+      explicit MoveableOnly(LiftimeTracker &tracker)
+      : m_verify(tracker.CreateVerifier())
       {
-        std::cout << " -> " << num << " " << name << " " << ++s_count << "\n";
-      }  
-      
-      ~MoveableOnly()
-      {
-        std::cout << " <- " << m_num << " " << m_name << " " << s_count-- << "\n";
       }
-      
-      // make sure it works with non-moveable types
+
+      ~MoveableOnly() = default;
+
+      // make sure it works with moveable non-copyable  types
       MoveableOnly(const MoveableOnly&) = delete;
       MoveableOnly& operator=(const MoveableOnly&) = delete;
       MoveableOnly(MoveableOnly&&) = default;
@@ -88,34 +114,16 @@ namespace
 
     class CopyableOnly
     {
-      inline static int s_count = 0;
-      int m_num = -1;
-      string m_name;
-      
-    public:
-      CopyableOnly()
-      {
-        std::cout << " -> " << ++s_count << "\n";
-      }
-      
-      explicit CopyableOnly(int num)
-      : m_num(num)
-      {
-        std::cout << " -> " << num << " " << ++s_count << "\n";
-      }  
+      ObjectLifetimeVerifier m_verify;
 
-      CopyableOnly(int num, const string& name)
-      : m_num(num)
-      , m_name(name)
+    public:
+      explicit CopyableOnly(LiftimeTracker &tracker)
+      : m_verify(tracker.CreateVerifier())
       {
-        std::cout << " -> " << num << " " << name << " " << ++s_count << "\n";
-      }  
-      
-      ~CopyableOnly()
-      {
-        std::cout << " <- " << m_num << " " << m_name << " " << s_count-- << "\n";
       }
-      
+
+      ~CopyableOnly() = default;
+
       // make sure it works with non-moveable types
       CopyableOnly(const CopyableOnly&) = default;
       CopyableOnly& operator=(const CopyableOnly&) = default;
@@ -137,12 +145,11 @@ TEST_CASE("Factorials are computed", "[factorial]")
 TEST_CASE("filo")
 {
   {
+    LiftimeTracker tracker;
     scope::filo<NonMoveable> lt;
     for(int i = 0; i < 3; i++)
     {
-      lt.emplace();
-      lt.emplace(i);
-      lt.emplace(i, "fred");
+      lt.emplace(tracker);
     }
   }  
 }
@@ -150,16 +157,15 @@ TEST_CASE("filo")
 TEST_CASE("scoped_new")
 {
   {
+    LiftimeTracker tracker;
     scope::scoped_new sn;
     {
-      sn.emplace<NonMoveable>();
-      sn.emplace<NonMoveable>(4);
-      sn.emplace<NonMoveable>(4, "bob");
-      sn.insert(MoveableOnly{5, "george"});
-      MoveableOnly moveableOnly(6, "alice");
+      sn.emplace<NonMoveable>(tracker);
+      sn.insert(MoveableOnly{tracker});
+      MoveableOnly moveableOnly(tracker);
       sn.insert(std::move(moveableOnly));
             
-      const CopyableOnly copyableOnly(7, "lisa");
+      const CopyableOnly copyableOnly(tracker);
       sn.insert(copyableOnly);
     }
   }  
